@@ -1,15 +1,69 @@
-import { createContext } from "react";
+import React, { createContext, useContext, useEffect, useReducer } from 'react';
+import axios from 'axios'
 
-export const initialState = {theme: "", data: []}
+export const url = 'https://jsonplaceholder.typicode.com/users'
 
-export const ContextGlobal = createContext(undefined);
+const initialState = {
+  theme: JSON.parse(localStorage.getItem('theme')) || 'light',
+  data: [],
+  favs: JSON.parse(localStorage.getItem('favs')) || [],
+  user: {
+    name: '',
+    email: ''
+  }
+};
+
+export const ActionType = {
+  SetTheme: 'SET_THEME',
+  SetData: 'SET_DATA',
+  SetFav: 'SET_FAV',
+  SetUserName: 'SET_NAME',
+  SetUserEmail: 'SET_EMAIL'
+};
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case ActionType.SetTheme:
+      return { ...state, theme: action.payload };
+    case ActionType.SetData:
+      return { ...state, data: action.payload };
+    case ActionType.SetFav:
+      return { ...state, favs: [...state.favs, action.payload]}
+    case ActionType.SetUserName:
+      return { ...state, user: {...state.user, name: action.payload} }
+    case ActionType.SetUserEmail:
+      return { ...state, user: {...state.user, email: action.payload} }
+    default:
+      
+    }
+};
+
+export const ContextGlobal = createContext();
 
 export const ContextProvider = ({ children }) => {
-  //Aqui deberan implementar la logica propia del Context, utilizando el hook useMemo
+
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  useEffect(() => {
+    axios(url)
+    .then((res) => dispatch({ type: ActionType.SetData, payload: res.data }))
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('theme', JSON.stringify(state.theme));
+  }, [state.theme]);
+
+  useEffect(() => {
+    localStorage.setItem('favs', JSON.stringify(state.favs));
+  }, [state.favs])
 
   return (
-    <ContextGlobal.Provider value={{}}>
+    <ContextGlobal.Provider value={{
+      state, dispatch
+    }}>
       {children}
     </ContextGlobal.Provider>
-  );
+  )
 };
+
+export const useGlobalContext = () => useContext(GlobalContext);
